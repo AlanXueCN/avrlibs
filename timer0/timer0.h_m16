@@ -1,0 +1,150 @@
+/**
+ * @file timer0.h_m16
+ * Библиотека для работы с таймером 0 на МК ATMega16+.
+ */
+
+#ifndef TIMER0_M16_H
+#define	TIMER0_M16_H
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <avr/io.h>
+#include "bits/bits.h"
+#include "defs/defs.h"
+#include "timer/timer.h"
+
+
+//Режим таймера.
+#define TIMER0_MODE_NORMAL 0
+#define TIMER0_MODE_PHASE_CORRECT_PWM 1
+#define TIMER0_MODE_CTC 2
+#define TIMER0_MODE_FAST_PWM 3
+
+//Режимы COM для не-PWM режимов таймера.
+#define TIMER0_COM_NONPWM_NORMAL       0
+#define TIMER0_COM_NONPWM_TOGGLE       1
+#define TIMER0_COM_NONPWM_CLEAR        2
+#define TIMER0_COM_NONPWM_SET          3
+
+//Режимы COM для Fast-PWM режима таймера.
+#define TIMER0_COM_FAST_PWM_NORMAL       0
+#define TIMER0_COM_FAST_PWM_CLEAR        2
+#define TIMER0_COM_FAST_PWM_SET          3
+
+//Режимы COM для PhaseCorrect-PWM режима таймера.
+#define TIMER0_COM_PHASE_CORRECT_PWM_NORMAL       0
+#define TIMER0_COM_PHASE_CORRECT_PWM_CLEAR        2
+#define TIMER0_COM_PHASE_CORRECT_PWM_SET          3
+
+//Источники тактирования таймера.
+#define TIMER0_CLOCK_NONE                       0
+#define TIMER0_CLOCK_INTERNAL_SCALE_1           1
+#define TIMER0_CLOCK_INTERNAL_SCALE_8           2
+#define TIMER0_CLOCK_INTERNAL_SCALE_64          3
+#define TIMER0_CLOCK_INTERNAL_SCALE_256         4
+#define TIMER0_CLOCK_INTERNAL_SCALE_1024        5
+#define TIMER0_CLOCK_EXTERNAL_FALLING_EDGE      6
+#define TIMER0_CLOCK_EXTERNAL_RISING_EDGE       7
+
+/**
+ * Устанавливает режим работы таймера.
+ * @param mode Режим работы.
+ * @return Код ошибки.
+ */
+err_t timer0_set_mode(uint8_t mode);
+
+/**
+ * Устанавливает режим работы выходного пина таймера.
+ * @param com_mode Режим работы.
+ * @return Код ошибки.
+ */
+err_t timer0_set_com_mode(uint8_t com_mode);
+
+/**
+ * Устанавливает источник тактирования.
+ * @param clock Источник тактирования.
+ * @return Код ошибки.
+ */
+err_t timer0_set_clock(uint8_t clock);
+
+/**
+ * Включает принудительно режим COM.
+ * @param force_com Включение принудительно.
+ */
+ALWAYS_INLINE static void timer0_set_force_com(bool force_com)
+{
+    BIT_SET(TCCR0, FOC0, force_com);
+}
+
+/**
+ * Устанавливает значение счётчика.
+ * @param cntr_value Значение счётчика.
+ */
+ALWAYS_INLINE static void timer0_set_counter_value(uint8_t cntr_value)
+{
+    TCNT0 = cntr_value;
+}
+
+/**
+ * Получает значение счётчика.
+ * @return Значение счётчика.
+ */
+ALWAYS_INLINE static uint8_t timer0_counter_value(void)
+{
+    return TCNT0;
+}
+
+/**
+ * Устанавливает сравниваемое значение.
+ * @param cmp_value Сравниваемое значение.
+ */
+ALWAYS_INLINE static void timer0_set_compare_value(uint8_t cmp_value)
+{
+    OCR0 = cmp_value;
+}
+
+/**
+ * Получает значение сравнения.
+ * @return Значение сравнения.
+ */
+ALWAYS_INLINE static uint8_t timer0_compare_value(void)
+{
+    return OCR0;
+}
+
+/**
+ * Устанавливает каллбэк переполнения таймера.
+ * @param callback Каллбэк.
+ * @return Предыдущий каллбэк.
+ */
+timer_callback_t timer0_set_overflow_callback(timer_callback_t callback);
+
+/**
+ * Устанавливает каллбэк сравнения.
+ * @param callback Каллбэк.
+ * @return Предыдущий каллбэк.
+ */
+timer_callback_t timer0_set_compare_match_callback(timer_callback_t callback);
+
+/**
+ * Запускает таймер.
+ * @return Код ошибки.
+ */
+err_t timer0_start();
+
+/**
+ * Останавливает таймер.
+ */
+void timer0_stop();
+
+/**
+ * Сбрасывает предделитель таймера 0.
+ * !!! У таймеров 0 и 1 общий предделитель. !!!
+ */
+ALWAYS_INLINE static void timer0_prescaler_reset()
+{
+    BIT_ON(SFIOR, PSR10);
+}
+
+#endif	/* TIMER0_M16_H */
+

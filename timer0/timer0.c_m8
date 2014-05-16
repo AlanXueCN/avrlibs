@@ -1,0 +1,65 @@
+#include "timer0.h"
+#include <avr/interrupt.h>
+
+
+/*
+ * TIMER 0
+ */
+
+typedef struct _Timer0_State {
+    uint8_t clock;
+    timer_callback_t overflow_callback;
+}timer0_state_t;
+
+timer0_state_t timer0_state = {0};
+
+
+ISR(TIMER0_OVF_vect)
+{
+    if(timer0_state.overflow_callback) timer0_state.overflow_callback();
+}
+
+err_t timer0_set_clock(uint8_t clock)
+{
+    if(clock > 0x7) return E_INVALID_VALUE;
+    
+    timer0_state.clock = clock;
+    
+    return E_NO_ERROR;
+}
+
+timer_callback_t timer0_set_overflow_callback(timer_callback_t callback)
+{
+    timer_callback_t prev_callback = timer0_state.overflow_callback;
+    
+    //Запретим прерывание.
+    BIT_OFF(TIMSK, TOIE0);
+    //Установим каллбэк.
+    timer0_state.overflow_callback = callback;
+    //И разрешим снова, если нужно.
+    if(timer0_state.overflow_callback){
+        BIT_ON(TIMSK, TOIE0);
+    }
+    
+    return prev_callback;
+}
+
+err_t timer0_start()
+{
+    if(timer0_state.clock == 0) return E_TIMER_INVALID_CLOCK;
+    
+    //сбросим значение часов.
+    timer0_stop();
+    //Установим.
+    TCCR0 |= (((timer0_state.clock & 0x4) >> 2) << CS02) |
+             (((timer0_state.clock & 0x2) >> 1) << CS01) |
+             ((timer0_state.clock & 0x1) << CS00);
+    
+    return E_NO_ERROR;
+}
+
+void timer0_stop()
+{
+    //Очистим биты источника тактирования.
+    TCCR0 &= ~((1 << CS02) | (1 << CS01) | (1 << CS00));
+}

@@ -1,0 +1,144 @@
+#include "adc.h_m16"
+#include <avr/interrupt.h>
+#include "bits/bits.h"
+#include "utils/utils.h"
+#include <stddef.h>
+
+//! Максимальные значения.
+#define ADC_REF_VOLTAGE_MAX     ADC_REF_VOLTAGE_INTERNAL
+#define ADC_SOURCE_MAX          ADC_SOURCE_GND
+#define ADC_PRESCALER_MAX       ADC_PRESCALER_128
+#define ADC_TS_MAX              ADC_TS_TIMER1_CAPTURE_EVENT
+
+
+//! Прерывания.
+//! Запрещение.
+#define __adc_interrupts_save_disable() __interrupts_save_disable_in(ADCSRA, ADIE)
+//! Разрешение.
+#define __adc_interrupts_restore() __interrupts_restore_in(ADCSRA, ADIE)
+
+/**
+ * Структура состояния ADC.
+ */
+typedef struct _ADC {
+    adc_callback_t callback;
+}adc_t;
+
+//! Состояние ADC.
+static adc_t adc;
+
+/**
+ * Обработчик прерывания завершения конвертации.
+ */
+ISR(ADC_vect)
+{
+    if(adc.callback) adc.callback();
+}
+
+
+err_t adc_init(adc_prescaler_t prescaler)
+{
+    if(prescaler > ADC_PRESCALER_MAX) return E_INVALID_VALUE;
+    
+    adc.callback = NULL;
+    
+    ADCSRA = BIT(ADEN) | BIT(ADIE) | prescaler;
+    
+    return E_NO_ERROR;
+}
+
+adc_callback_t adc_callback(void)
+{
+    return adc.callback;
+}
+
+void adc_set_callback(adc_callback_t callback)
+{
+    __adc_interrupts_save_disable();
+    
+    adc.callback = callback;
+    
+    __adc_interrupts_restore();
+}
+
+adc_ref_voltage_t adc_ref_voltage(void)
+{
+    adc_ref_voltage_t res = 0;
+    
+    res = ADMUX;
+    res >>= REFS0;
+    
+    return res;
+}
+
+err_t adc_set_ref_voltage(adc_ref_voltage_t voltage)
+{
+    if(voltage > ADC_REF_VOLTAGE_MAX) return E_INVALID_VALUE;
+    
+    ADMUX = (ADMUX & 0x3f) | (voltage << REFS0);
+    
+    return E_NO_ERROR;
+}
+
+adc_source_t adc_source(void)
+{
+    adc_source_t res = 0;
+    
+    res = ADMUX & BIT_MAKE_MASK(5, 0);
+    
+    return res;
+}
+
+err_t adc_set_source(adc_source_t source)
+{
+    if(source > ADC_SOURCE_MAX) return E_INVALID_VALUE;
+    
+    ADMUX = (ADMUX & 0xe0) | source;
+    
+    return E_NO_ERROR;
+}
+
+adc_trigger_source_t adc_trigger_source(void)
+{
+    adc_trigger_source_t res = 0;
+    
+    res = SFIOR;
+    res >>= ADTS0;
+    
+    return res;
+}
+
+err_t adc_set_trigger_source(adc_trigger_source_t source)
+{
+    if(source > ADC_TS_MAX) return E_INVALID_VALUE;
+    
+    SFIOR = (SFIOR & 0x1f) | (source << ADTS0);
+    
+    return E_NO_ERROR;
+}
+
+bool adc_auto_conversion(void)
+{
+    return BIT_VALUE(ADCSRA, ADATE);
+}
+
+void adc_set_auto_conversion(bool enabled)
+{
+    BIT_SET(ADCSRA, ADATE, enabled);
+}
+
+void adc_start_conversion(void)
+{
+    BIT_ON(ADCSRA, ADSC);
+}
+
+adc_value_t adc_value(void)
+{
+    uint8_t adcl = ADCL;
+    uint8_t adch = ADCH;
+    
+    if(!BIT_TEST(ADMUX, ADLAR)){
+        return (((adc_value_t)adch) << 8) | adcl;
+    }
+    return (((adc_value_t)adch) << 2) | (adcl >> 6);
+}

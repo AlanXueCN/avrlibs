@@ -1,0 +1,232 @@
+/**
+ * @file adc.h_m16
+ * Библиотека для работы с ADC на МК >= mega16.
+ */
+
+#ifndef ADC_H_M16
+#define	ADC_H_M16
+
+#include <avr/io.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include "errors/errors.h"
+#include "defs/defs.h"
+
+
+//! Выбор опорного напряжения.
+//! Пин AREF.
+#define ADC_REF_VOLTAGE_AREF                     0
+//! Пин AVCC с внешним конденсатором на пине AREF.
+#define ADC_REF_VOLTAGE_AVCC_CAPACITOR_AREF      1
+//! Зарезервировано.
+#define ADC_REF_VOLTAGE_RESERVED                 2
+//! Внутренний источник опорного напряжения 2.56V.
+#define ADC_REF_VOLTAGE_INTERNAL                 3
+//! Тип опорного напряжения.
+typedef uint8_t adc_ref_voltage_t;
+
+//! Входа.
+//! ADC0.
+#define ADC_SOURCE_ADC0 0
+//! ADC1.
+#define ADC_SOURCE_ADC1 1
+//! ADC2.
+#define ADC_SOURCE_ADC2 2
+//! ADC3.
+#define ADC_SOURCE_ADC3 3
+//! ADC4.
+#define ADC_SOURCE_ADC4 4
+//! ADC5.
+#define ADC_SOURCE_ADC5 5
+//! ADC6.
+#define ADC_SOURCE_ADC6 6
+//! ADC7.
+#define ADC_SOURCE_ADC7 7
+
+//! ADC0 - ADC0 10x
+#define ADC_SOURCE_DIFF_ADC0_ADC0_10X   8
+//! ADC1 - ADC0 10x
+#define ADC_SOURCE_DIFF_ADC1_ADC0_10X   9
+//! ADC0 - ADC0 200x
+#define ADC_SOURCE_DIFF_ADC0_ADC0_200X  10
+//! ADC1 - ADC0 200x
+#define ADC_SOURCE_DIFF_ADC1_ADC0_200X  11
+
+//! ADC2 - ADC2 10x
+#define ADC_SOURCE_DIFF_ADC2_ADC2_10X   12
+//! ADC3 - ADC2 10x
+#define ADC_SOURCE_DIFF_ADC3_ADC2_10X   13
+//! ADC2 - ADC2 200x
+#define ADC_SOURCE_DIFF_ADC2_ADC2_200X  14
+//! ADC3 - ADC2 200x
+#define ADC_SOURCE_DIFF_ADC3_ADC2_200X  15
+
+//! ADC0 - ADC1 1x
+#define ADC_SOURCE_DIFF_ADC0_ADC1_1X    16
+//! ADC1 - ADC1 1x
+#define ADC_SOURCE_DIFF_ADC1_ADC1_1X    17
+//! ADC2 - ADC1 1x
+#define ADC_SOURCE_DIFF_ADC2_ADC1_1X    18
+//! ADC3 - ADC1 1x
+#define ADC_SOURCE_DIFF_ADC3_ADC1_1X    19
+//! ADC4 - ADC1 1x
+#define ADC_SOURCE_DIFF_ADC4_ADC1_1X    20
+//! ADC5 - ADC1 1x
+#define ADC_SOURCE_DIFF_ADC5_ADC1_1X    21
+//! ADC6 - ADC1 1x
+#define ADC_SOURCE_DIFF_ADC6_ADC1_1X    22
+//! ADC7 - ADC1 1x
+#define ADC_SOURCE_DIFF_ADC7_ADC1_1X    23
+
+//! ADC0 - ADC2 1x
+#define ADC_SOURCE_DIFF_ADC0_ADC2_1X    24
+//! ADC1 - ADC2 1x
+#define ADC_SOURCE_DIFF_ADC1_ADC2_1X    25
+//! ADC2 - ADC2 1x
+#define ADC_SOURCE_DIFF_ADC2_ADC2_1X    26
+//! ADC3 - ADC2 1x
+#define ADC_SOURCE_DIFF_ADC3_ADC2_1X    27
+//! ADC4 - ADC2 1x
+#define ADC_SOURCE_DIFF_ADC4_ADC2_1X    28
+//! ADC5 - ADC2 1x
+#define ADC_SOURCE_DIFF_ADC5_ADC2_1X    29
+
+//! 1.22V VBG
+#define ADC_SOURCE_VBG  30
+//! 0V GND
+#define ADC_SOURCE_GND  31
+
+//! Тип источника.
+typedef uint8_t adc_source_t;
+
+//! Предделитель тактирования ADC.
+//! F_CPU / 2
+#define ADC_PRESCALER_2_0    0
+//! F_CPU / 2
+#define ADC_PRESCALER_2    1
+//! F_CPU / 2
+#define ADC_PRESCALER_4    2
+//! F_CPU / 2
+#define ADC_PRESCALER_8    3
+//! F_CPU / 2
+#define ADC_PRESCALER_16   4
+//! F_CPU / 2
+#define ADC_PRESCALER_32   5
+//! F_CPU / 2
+#define ADC_PRESCALER_64   6
+//! F_CPU / 2
+#define ADC_PRESCALER_128  7
+//! Тип предделителя.
+typedef uint8_t adc_prescaler_t;
+
+//! Источник сигнала автопреобразования.
+//! Свободное конвертирование.
+#define ADC_TS_FREE_RUNNING             0
+//! Аналоговый компаратор.
+#define ADC_TS_ANALOG_COMPARATOR        1
+//! Внешнее прерывание 0.
+#define ADC_TS_EXTERNAL_INT0            2
+//! Совпадение сравнения таймера 0.
+#define ADC_TS_TIMER0_COMPARE_MATCH     3
+//! Переполнение таймера 0.
+#define ADC_TS_TIMER0_OVERFLOW          4
+//! Совпадение сравнения B таймера 1.
+#define ADC_TS_TIMER1_COMPARE_MATCHB    5
+//! Переполнение таймера 1.
+#define ADC_TS_TIMER1_OVERFLOW          6
+//! Внешнее событие таймера 1.
+#define ADC_TS_TIMER1_CAPTURE_EVENT     7
+//! Тип источника сигнала автопреобразования.
+typedef uint8_t adc_trigger_source_t;
+
+
+//! Тип значниея ADC.
+typedef uint16_t adc_value_t;
+
+//! Тип каллбэка, вызываемого при завершении преобразования.
+typedef void (*adc_callback_t)(void);
+
+
+/**
+ * Инициализирует ADC.
+ * @param prescaler Предделитель тактирования ADC.
+ * @return Код ошибки.
+ */
+extern err_t adc_init(adc_prescaler_t prescaler);
+
+/**
+ * Получает каллбэк.
+ * @return Каллбэк.
+ */
+extern adc_callback_t adc_callback(void);
+
+/**
+ * Устанавливает каллбэк.
+ * @param callback Каллбэк.
+ */
+extern void adc_set_callback(adc_callback_t callback);
+
+/**
+ * Получает опорное напряжение.
+ * @return Опорное напряжение.
+ */
+extern adc_ref_voltage_t adc_ref_voltage(void);
+
+/**
+ * Устанавливает опорное напряжение.
+ * @param voltage Опорное напряжение.
+ * @return Код ошибки.
+ */
+extern err_t adc_set_ref_voltage(adc_ref_voltage_t voltage);
+
+/**
+ * Получает источник.
+ * @return Источник.
+ */
+extern adc_source_t adc_source(void);
+
+/**
+ * Устанавливает источник.
+ * @param source Источник.
+ * @return Код ошибки.
+ */
+extern err_t adc_set_source(adc_source_t source);
+
+/**
+ * Получает источник автоматического преобразования.
+ * @return Источник автоматического преобразования.
+ */
+extern adc_trigger_source_t adc_trigger_source(void);
+
+/**
+ * Устанавливает источник автоматического преобразования.
+ * @param source Источник.
+ * @return Код ошибки.
+ */
+extern err_t adc_set_trigger_source(adc_trigger_source_t source);
+
+/**
+ * Получает разрешение автоматического преобразования.
+ * @return Разрешение автоматического преобразования.
+ */
+extern bool adc_auto_conversion(void);
+
+/**
+ * Устанавливает разрешение автоматического преобразования.
+ * @param enabled Разрешение автоматического преобразования.
+ */
+extern void adc_set_auto_conversion(bool enabled);
+
+/**
+ * Начинает конвертирование.
+ */
+extern void adc_start_conversion(void);
+
+/**
+ * Получает значение последнего преобразования.
+ * @return Значение последнего преобразования.
+ */
+extern adc_value_t adc_value(void);
+
+#endif	/* ADC_H_M16 */
+
