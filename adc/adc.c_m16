@@ -9,6 +9,7 @@
 #define ADC_SOURCE_MAX          ADC_SOURCE_GND
 #define ADC_PRESCALER_MAX       ADC_PRESCALER_128
 #define ADC_TS_MAX              ADC_TS_TIMER1_CAPTURE_EVENT
+#define ADC_VALUE_ALIGN_MAX     ADC_VALUE_ALIGN_LEFT
 
 
 //! Прерывания.
@@ -132,6 +133,20 @@ void adc_start_conversion(void)
     BIT_ON(ADCSRA, ADSC);
 }
 
+adc_value_align_t adc_value_align(void)
+{
+    return BIT_VALUE(ADMUX, ADLAR);
+}
+
+err_t adc_set_value_align(adc_value_align_t align)
+{
+    if(align > ADC_VALUE_ALIGN_MAX) return E_INVALID_VALUE;
+    
+    BIT_SET(ADMUX, ADLAR, align);
+    
+    return E_NO_ERROR;
+}
+
 adc_value_t adc_value(void)
 {
     uint8_t adcl = ADCL;
@@ -141,4 +156,15 @@ adc_value_t adc_value(void)
         return (((adc_value_t)adch) << 8) | adcl;
     }
     return (((adc_value_t)adch) << 2) | (adcl >> 6);
+}
+
+adc_value8_t adc_value8(void)
+{
+    uint8_t adcl = ADCL;
+    uint8_t adch = ADCH;
+    
+    if(BIT_TEST(ADMUX, ADLAR)){
+        return adch;
+    }
+    return (adch << 6) | (adcl >> 2);
 }

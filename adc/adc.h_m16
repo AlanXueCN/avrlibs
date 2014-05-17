@@ -139,9 +139,19 @@ typedef uint8_t adc_prescaler_t;
 //! Тип источника сигнала автопреобразования.
 typedef uint8_t adc_trigger_source_t;
 
+//! Выравнивание результата.
+//! Правое выравнивание ADCH:ADCL.
+#define ADC_VALUE_ALIGN_RIGHT       0
+//! Левое выравнивание ADCH:ADCL.
+#define ADC_VALUE_ALIGN_LEFT        1
+//! Тип выравнивания.
+typedef uint8_t adc_value_align_t;
+
 
 //! Тип значниея ADC.
 typedef uint16_t adc_value_t;
+//! Тип значниея ADC 8 бит.
+typedef uint8_t adc_value8_t;
 
 //! Тип каллбэка, вызываемого при завершении преобразования.
 typedef void (*adc_callback_t)(void);
@@ -223,10 +233,29 @@ extern void adc_set_auto_conversion(bool enabled);
 extern void adc_start_conversion(void);
 
 /**
+ * Получает значение выравнивания значения ADCH:ADCL.
+ * @return Ззначение выравнивания значения ADCH:ADCL.
+ */
+extern adc_value_align_t adc_value_align(void);
+
+/**
+ * Устанавливает значение выравнивания значения ADCH:ADCL.
+ * @param align Ззначение выравнивания значения ADCH:ADCL.
+ * @return Код ошибки.
+ */
+extern err_t adc_set_value_align(adc_value_align_t align);
+
+/**
  * Получает значение последнего преобразования.
  * @return Значение последнего преобразования.
  */
 extern adc_value_t adc_value(void);
+
+/**
+ * Получает значение последнего преобразования 8 бит (без двух LSB).
+ * @return Значение последнего преобразования 8 бит (без двух LSB).
+ */
+extern adc_value8_t adc_value8(void);
 
 #endif	/* ADC_H_M16 */
 
