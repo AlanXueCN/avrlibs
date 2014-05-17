@@ -23,16 +23,19 @@ fixed_t fixed_round(fixed_t f)
     return (f + 128) & 0xff00;
 }
 
-int8_t fixed_get_int(fixed_t f)
+fixed_half_t fixed_get_int(fixed_t f)
 {
     if(f < 0) return -((-f) >> 8);
     return (f >> 8);
 }
 
-int8_t fixed_get_fract(fixed_t f)
+fixed_half_t fixed_get_fract(fixed_t f)
 {
-    if(f < 0){
-        return (fixed_int_t)100 * (fixed_int_t)(-((-f) & 0xff)) / (fixed_int_t)256;
+    fixed_int_t value;
+    if(f >= 0){
+        value = (fixed_int_t)(f & 0xff);
+    }else{
+        value = (fixed_int_t)(-((-f) & 0xff));
     }
-    return (fixed_int_t)100 * (fixed_int_t)(f & 0xff) / (fixed_int_t)256;
+    return (value * 100) / 256;
 }

@@ -10,8 +10,11 @@
 #include "defs/defs.h"
 
 #define FIXED_PART_SIZE 8
+//! Целочисленный тип нужной размерности.
 typedef int16_t fixed_int_t;
-//Число с фиксированной запятой.
+//! Целочисленный тип половинной размерности.
+typedef int8_t fixed_half_t;
+//! Число с фиксированной запятой.
 typedef fixed_int_t fixed_t;
 
 #define fixed_make_int(i) (((fixed_int_t)i) << FIXED_PART_SIZE)
@@ -53,14 +56,14 @@ extern fixed_t fixed_round(fixed_t f);
  * @param f Число с фиксированной запятой.
  * @return Целая часть числа с фиксированной запятой.
  */
-extern int8_t fixed_get_int(fixed_t f);
+extern fixed_half_t fixed_get_int(fixed_t f);
 
 /**
  * Получает дробную часть числа с фиксированной запятой.
  * @param f Число с фиксированной запятой.
  * @return Дробная часть числа с фиксированной запятой.
  */
-extern int8_t fixed_get_fract(fixed_t f);
+extern fixed_half_t fixed_get_fract(fixed_t f);
 
 
 #endif	/* FIXED_H */
