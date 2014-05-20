@@ -1,6 +1,7 @@
 #include "i2c.h"
 #include "buffer/buffer.h"
 #include "bits/bits.h"
+#include "utils/utils.h"
 #include <avr/interrupt.h>
 #include <util/twi.h>
 #include <string.h>
@@ -87,17 +88,28 @@ typedef struct _I2C_Master_Data {
  * Состояние шины i2c.
  */
 typedef struct _I2C_State{
+    //! Каллбэк.
     i2c_callback_t callback;
     
+    //! Каллбэк передачи/приёма ведомым.
     i2c_slave_callback_t slave_callback;
     
+    //Идентификатор передачи.
     i2c_transfer_id_t transfer_id;
     
+    //! Статус.
     i2c_status_t status;
     
+    //! Флаг реагирования на свой адрес.
     bool listening;
+    
+    //! Флаг прерванной передачи/приёма потерей приоритета.
     bool interrupted;
     
+    //! Флаг
+    bool has_transfer;
+    
+    //! Данные для передачи/приёма ведущим.
     i2c_master_data_t master;
 }i2c_state_t;
 
@@ -159,10 +171,9 @@ ALWAYS_INLINE static void i2c_do_rw_byte(uint8_t ack)
  * @param status Статус.
  * @return Статус.
  */
-ALWAYS_INLINE static i2c_status_t i2c_set_status(i2c_status_t status)
+ALWAYS_INLINE static void i2c_set_status(i2c_status_t status)
 {
     _i2c_state.status = status;
-    return status;
 }
 
 err_t i2c_init(uint16_t freq)
@@ -209,7 +220,12 @@ i2c_status_t i2c_status(void)
     return _i2c_state.status;
 }
 
-bool i2c_is_busy(void)
+bool i2c_interrupted(void)
+{
+    return _i2c_state.interrupted;
+}
+
+bool i2c_busy(void)
 {
     switch(_i2c_state.status){
         case I2C_STATUS_READING:
@@ -218,7 +234,12 @@ bool i2c_is_busy(void)
         default:
             break;
     }
-    return false;//!(TWCR & (1<<TWINT));
+    return _i2c_state.has_transfer;
+}
+
+void i2c_wait(void)
+{
+    WAIT_WHILE_TRUE(i2c_busy());
 }
 
 i2c_callback_t i2c_callback(void)
@@ -260,6 +281,22 @@ i2c_size_t i2c_master_bytes_transmitted(void)
  * Алиасы. 
  */
 
+ALWAYS_INLINE static void i2c_m_addr_buffer_reset(void)
+{
+    buffer_reset(&_i2c_state.master.data.address_buffer);
+}
+
+ALWAYS_INLINE static void i2c_m_data_buffer_reset(void)
+{
+    buffer_reset(&_i2c_state.master.data.data_buffer);
+}
+
+ALWAYS_INLINE static void i2c_m_buffers_reset(void)
+{
+    i2c_m_addr_buffer_reset();
+    i2c_m_data_buffer_reset();
+}
+
 ALWAYS_INLINE static bool i2c_m_addr_buffer_has_next(void)
 {
     return buffer_has_next(&_i2c_state.master.data.address_buffer);
@@ -278,16 +315,6 @@ ALWAYS_INLINE static uint8_t i2c_m_addr_buffer_get_next(void)
 ALWAYS_INLINE static uint8_t i2c_m_data_buffer_get_next(void)
 {
     return buffer_get_next(&_i2c_state.master.data.data_buffer);
-}
-
-ALWAYS_INLINE static void i2c_m_addr_buffer_reset(void)
-{
-    buffer_reset(&_i2c_state.master.data.address_buffer);
-}
-
-ALWAYS_INLINE static void i2c_m_data_buffer_reset(void)
-{
-    buffer_reset(&_i2c_state.master.data.data_buffer);
 }
 
 ALWAYS_INLINE static bool i2c_m_addr_buffer_at_last(void)
@@ -320,38 +347,74 @@ ALWAYS_INLINE static void i2c_mt_next_byte(void)
     i2c_next_byte(_i2c_state.listening);
 }
 
+/**
+ * Посредник, вызывает каллбэк ведомого.
+ * @param data Полученные данные, или NULL.
+ * @return флаг возможности ещё принимать данные.
+ */
 ALWAYS_INLINE static bool i2c_on_slave_read(uint8_t* data)
 {
     if(_i2c_state.slave_callback) return _i2c_state.slave_callback(I2C_READ, data);
     return false;
 }
 
+/**
+ * Посредник, вызывает каллбэк ведомого.
+ * @param data Данные для передачи.
+ * @return флаг возможности ещё передавать данные.
+ */
 ALWAYS_INLINE static bool i2c_on_slave_write(uint8_t* data)
 {
     if(_i2c_state.slave_callback) return _i2c_state.slave_callback(I2C_WRITE, data);
     return false;
 }
 
+/**
+ * Посредник, вызывает каллбэк, если он не NULL.
+ */
 ALWAYS_INLINE static void i2c_end(void)
 {
+    // Передача окончина.
+    _i2c_state.has_transfer = _i2c_state.interrupted;
     if(_i2c_state.callback) _i2c_state.callback();
 }
 
+/**
+ * Обработчик окончания приёма/передачи ведущим.
+ */
 static void i2c_m_end(void)
 {
-    i2c_do_stop();
+    // Обозначим конец передачи.
     i2c_end();
+    
+    // Если не была инициирована ещё одна передача.
+    if(!_i2c_state.has_transfer){
+        // Пошлём стоп.
+        i2c_do_stop();
+    }
 }
 
+/**
+ * Обработчик окончания приёма/передачи ведомым.
+ */
 static void i2c_s_end(void)
 {
+    // Обозначим конец передачи/приёма.
+    i2c_end();
+    
+    // Если передача прервана.
     if(_i2c_state.interrupted){
         _i2c_state.interrupted = false;
+        // Запустим новую.
         i2c_do_start();
+    // Иначе.
     }else{
-        i2c_do_listen();
+        // Если не была инициирована ещё одна передача.
+        if(!_i2c_state.has_transfer){
+            //Будем слушать дальше.
+            i2c_do_listen();
+        }
     }
-    i2c_end();
 }
 
 /**
@@ -377,6 +440,8 @@ err_t i2c_master_setup_rw(i2c_address_t device, void* page_address, size_t page_
     i2c_data_init(&_i2c_state.master.data, page_address, page_address_size, data, data_size);
     
     _i2c_state.master.device = device;
+    
+    _i2c_state.has_transfer = true;
     
     return E_NO_ERROR;
 }
@@ -462,8 +527,7 @@ ISR(TWI_vect)
         //Мастер послал START на шину.
         case TW_START:
             //сбросим буферы.
-            i2c_m_addr_buffer_reset();
-            i2c_m_data_buffer_reset();
+            i2c_m_buffers_reset();
             //break нету, идём дальше!
         //Мастер послал на шину повторный старт.
         case TW_REP_START:

@@ -122,10 +122,25 @@ extern void i2c_set_address(i2c_address_t address, bool bcast_enabled);
 extern i2c_status_t i2c_status(void);
 
 /**
+ * Получает флаг прерванности предыдущей
+ * передачи мастера потерей приоритета.
+ * @return Флаг прерванности передачи.
+ */
+extern bool i2c_interrupted(void);
+
+/**
  * Получает занятость шины.
  * @return true если шина занята, иначе false.
  */
-extern bool i2c_is_busy(void);
+extern bool i2c_busy(void);
+
+//! Алиас для i2c_busy()
+#define i2c_is_busy() i2c_busy()
+
+/**
+ * Ждёт завершения текущей операции i2c.
+ */
+extern void i2c_wait(void);
 
 /**
  * Получает каллбэк ведущего.

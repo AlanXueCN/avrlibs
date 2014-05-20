@@ -7,7 +7,7 @@ fixed_t fixed_from_int(int8_t i)
 
 fixed_t fixed_from_fract(int16_t dividend, int16_t divider)
 {
-    if(dividend > 255){
+    if(dividend > 127 || dividend < -128){
         return fixed_make_fract32(dividend, divider);
     }
     return fixed_make_fract(dividend, divider);

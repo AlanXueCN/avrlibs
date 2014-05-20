@@ -63,7 +63,7 @@
 /**
  * Меняет значения в переменных A и B, используя переменную TMP
  */
-#define SWAP(A, B, TMP) do{ TMP = A; A = B; B = TMP; }while(0)
+#define SWAP(A, B, TMP) do{ (TMP) = (A); (A) = (B); (B) = (TMP); }while(0)
 
 /**
  * Цикличный инкремент/декремент на заданное значение.
@@ -80,11 +80,11 @@
 /**
  * Ожидание пока условие C истинно.
  */
-#define WAIT_WHILE_TRUE(C) while((C)){}
+#define WAIT_WHILE_TRUE(C) do{}while((C))
 
 /**
  * Ожидание пока условие C ложно.
  */
-#define WAIT_WHILE_FALSE(C) while(!(C)){}
+#define WAIT_WHILE_FALSE(C) do{}while(!(C))
 
 #endif	/* UTILS_H */
