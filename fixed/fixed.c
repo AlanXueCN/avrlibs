@@ -2,15 +2,15 @@
 
 fixed_t fixed_from_int(int8_t i)
 {
-    return fixed_make_int(i);
+    return fixed_make_from_int(i);
 }
 
 fixed_t fixed_from_fract(int16_t dividend, int16_t divider)
 {
     if(dividend > 127 || dividend < -128){
-        return fixed_make_fract32(dividend, divider);
+        return fixed_make_from_fract32(dividend, divider);
     }
-    return fixed_make_fract(dividend, divider);
+    return fixed_make_from_fract(dividend, divider);
 }
 
 fixed_t fixed_abs(fixed_t f)

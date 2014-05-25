@@ -17,10 +17,10 @@ typedef int8_t fixed_half_t;
 //! Число с фиксированной запятой.
 typedef fixed_int_t fixed_t;
 
-#define fixed_make_int(i) (((fixed_int_t)i) << FIXED_PART_SIZE)
-#define fixed_make_int32(i) (((int32_t)i) << FIXED_PART_SIZE)
-#define fixed_make_fract(dividend, divider) (fixed_make_int(dividend) / divider)
-#define fixed_make_fract32(dividend, divider) (fixed_make_int32(dividend) / divider)
+#define fixed_make_from_int(i) (((fixed_int_t)i) << FIXED_PART_SIZE)
+#define fixed_make_from_int32(i) (((int32_t)i) << FIXED_PART_SIZE)
+#define fixed_make_from_fract(dividend, divider) (fixed_make_from_int(dividend) / divider)
+#define fixed_make_from_fract32(dividend, divider) (fixed_make_from_int32(dividend) / divider)
 
 /**
  * Создаёт число с фиксированной запятой.
