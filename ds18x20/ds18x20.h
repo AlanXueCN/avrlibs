@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include "one_wire/one_wire.h"
 #include "errors/errors.h"
-#include "fixed/fixed.h"
+#include "fixed/fixed16.h"
 #include "bits/bits.h"
 
 #ifndef DS18X20_READ_SCRATCHPAD_FULLY
@@ -89,7 +89,7 @@ extern bool ds18x20_conversion_done(ds18x20_t* sensor);
  * @param temp указатель на переменную для возвращения температуры.
  * @return Код ошибки.
  */
-extern err_t ds18x20_read_temp(ds18x20_t* sensor, fixed_t* temp);
+extern err_t ds18x20_read_temp(ds18x20_t* sensor, fixed16_t* temp);
 
 #endif	/* DS18X20_H */
 

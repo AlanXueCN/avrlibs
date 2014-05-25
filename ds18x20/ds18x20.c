@@ -102,7 +102,7 @@ bool ds18x20_conversion_done(ds18x20_t* sensor)
     return one_wire_read_bit(sensor->one_wire);
 }
 
-err_t ds18x20_read_temp(ds18x20_t* sensor, fixed_t* temp)
+err_t ds18x20_read_temp(ds18x20_t* sensor, fixed16_t* temp)
 {
     uint8_t inv_res = 0;
     uint8_t res_mask = 0xff;
