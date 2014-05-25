@@ -73,9 +73,6 @@ lcd44780.o: ../lib/lcd44780/lcd44780.c
 circular_buffer.o: ../lib/buffer/circular_buffer.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
 
-fixed.o: ../lib/fixed/fixed.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
 dpy7ser.o: ../lib/dpy7ser/dpy7ser.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
 
