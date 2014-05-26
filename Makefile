@@ -106,6 +106,12 @@ one_wire_search.o: ../lib/one_wire/one_wire_search.c
 one_wire.o: ../lib/one_wire/one_wire.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
 
+int1.o: ../lib/ext_int/int1.c
+	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
+
+int0.o: ../lib/ext_int/int0.c
+	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
+
 spi.o: ../lib/spi/spi.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
 
