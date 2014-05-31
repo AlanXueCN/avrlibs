@@ -59,13 +59,28 @@ ALWAYS_INLINE static void lcd8544_pins_end(lcd8544_t* lcd)
 }
 
 /**
+ * Ждёт завершения текущей операции.
+ * @return true, если шина i2c занята нами и мы дождались, иначе false.
+ */
+static bool lcd8544_wait_current_op(lcd8544_t* lcd)
+{
+    // Если шина занята, да ещё и не нами - возврат ошибки занятости.
+    if(spi_busy() && spi_transfer_id() != lcd->transfer_id) return false;
+    
+    future_wait(&lcd->future);
+    
+    return true;
+}
+
+/**
  * Начинает обмен данными с LCD.
  * @param lcd LCD.
  * @param is_data Флаг данные/команда.
  */
 static void lcd8544_begin(lcd8544_t* lcd, bool is_data)
 {
-    future_wait(&lcd->future);
+    spi_set_transfer_id(lcd->transfer_id);
+    
     future_set_result(&lcd->future, int_to_pvoid(E_NO_ERROR));
     
     future_start(&lcd->future);
@@ -96,11 +111,6 @@ static void lcd8544_end(lcd8544_t* lcd, err_t err)
  */
 static err_t lcd8544_send(lcd8544_t* lcd, bool is_data, const uint8_t* data, size_t size)
 {
-    // Если шина занята, да ещё и не нами - возврат ошибки занятости.
-    if(spi_busy() && spi_transfer_id() != lcd->transfer_id) return E_BUSY;
-    
-    spi_set_transfer_id(lcd->transfer_id);
-    
     lcd8544_begin(lcd, is_data);
     
     err_t err = spi_write(data, size);
@@ -188,6 +198,8 @@ err_t lcd8544_function_set(lcd8544_t* lcd, bool power_on,
     if(addressing_mode > LCD8544_ADDRESSING_MODE_MAX) return E_INVALID_VALUE;
     if(instruction_set > LCD8544_INSTRUCTION_SET_MAX) return E_INVALID_VALUE;
     
+    if(!lcd8544_wait_current_op(lcd)) return E_BUSY;
+    
     lcd->data_cmd = LCD8544_CMD_FUNCTION_SET;
     
     if(!power_on) BIT_ON(lcd->data_cmd, LCD8544_CMD_BIT_POWER_DOWN);
@@ -202,6 +214,8 @@ err_t lcd8544_function_set(lcd8544_t* lcd, bool power_on,
 
 err_t lcd8544_write_data(lcd8544_t* lcd, uint8_t data)
 {
+    if(!lcd8544_wait_current_op(lcd)) return E_BUSY;
+    
     lcd->data_cmd = data;
     
     err_t err = lcd8544_send(lcd, true, &lcd->data_cmd, 1);
@@ -216,6 +230,8 @@ err_t lcd8544_write(lcd8544_t* lcd, const uint8_t* data, size_t data_size)
     if(data == NULL) return E_NULL_POINTER;
     if(data_size > LCD8544_RAM_SIZE) return E_OUT_OF_RANGE;
     
+    if(!lcd8544_wait_current_op(lcd)) return E_BUSY;
+    
     err_t err = lcd8544_send(lcd, true, data, data_size);
     if(err != E_NO_ERROR) return err;
     
@@ -225,6 +241,8 @@ err_t lcd8544_write(lcd8544_t* lcd, const uint8_t* data, size_t data_size)
 err_t lcd8544_set_display_mode(lcd8544_t* lcd, lcd8544_display_mode_t mode)
 {
     if(mode > LCD8544_DISPLAY_MODE_MAX) return E_INVALID_VALUE;
+    
+    if(!lcd8544_wait_current_op(lcd)) return E_BUSY;
     
     lcd->data_cmd = LCD8544_CMD_DISPLAY_CONTROL;
     
@@ -241,6 +259,8 @@ err_t lcd8544_set_y_address(lcd8544_t* lcd, uint8_t address)
 {
     if(address > LCD8544_Y_ADDRESS_MAX) return E_INVALID_VALUE;
     
+    if(!lcd8544_wait_current_op(lcd)) return E_BUSY;
+    
     lcd->data_cmd = LCD8544_CMD_SET_Y_ADDRESS | address;
     
     err_t err = lcd8544_send(lcd, false, &lcd->data_cmd, 1);
@@ -252,6 +272,8 @@ err_t lcd8544_set_y_address(lcd8544_t* lcd, uint8_t address)
 err_t lcd8544_set_x_address(lcd8544_t* lcd, uint8_t address)
 {
     if(address > LCD8544_X_ADDRESS_MAX) return E_INVALID_VALUE;
+    
+    if(!lcd8544_wait_current_op(lcd)) return E_BUSY;
     
     lcd->data_cmd = LCD8544_CMD_SET_X_ADDRESS | address;
     
@@ -265,6 +287,8 @@ err_t lcd8544_set_temp_coef(lcd8544_t* lcd, lcd8544_temp_coef_t coef)
 {
     if(coef > LCD8544_TEMP_COEF_MAX) return E_INVALID_VALUE;
     
+    if(!lcd8544_wait_current_op(lcd)) return E_BUSY;
+    
     lcd->data_cmd = LCD8544_CMD_SET_TEMP_COEF | coef;
     
     err_t err = lcd8544_send(lcd, false, &lcd->data_cmd, 1);
@@ -277,6 +301,8 @@ err_t lcd8544_set_bias_system(lcd8544_t* lcd, lcd8544_bias_system_t bias)
 {
     if(bias > LCD8544_BIAS_SYSTEM_MAX) return E_INVALID_VALUE;
     
+    if(!lcd8544_wait_current_op(lcd)) return E_BUSY;
+    
     lcd->data_cmd = LCD8544_CMD_BIAS_SYSTEM | bias;
     
     err_t err = lcd8544_send(lcd, false, &lcd->data_cmd, 1);
@@ -288,6 +314,8 @@ err_t lcd8544_set_bias_system(lcd8544_t* lcd, lcd8544_bias_system_t bias)
 err_t lcd8544_set_voltage(lcd8544_t* lcd, uint16_t mV)
 {
     if(mV < LCD8544_VOLTAGE_MIN_mV || mV > LCD8544_VOLTAGE_MAX_mV) return E_INVALID_VALUE;
+    
+    if(!lcd8544_wait_current_op(lcd)) return E_BUSY;
     
     uint8_t volts_data = (uint8_t)((mV - LCD8544_VOLTAGE_MIN_mV) / 60);
     

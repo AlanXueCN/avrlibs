@@ -106,7 +106,7 @@ typedef struct _I2C_State{
     //! Флаг прерванной передачи/приёма потерей приоритета.
     bool interrupted;
     
-    //! Флаг
+    //! Флаг наличия передачи.
     bool has_transfer;
     
     //! Данные для передачи/приёма ведущим.
@@ -501,7 +501,7 @@ void i2c_slave_end_listening(void)
 uint8_t i2c_twi_status(void)
 {
     return _twi_status;
-}*/
+}/**/
 
 /**
  * Прерывание аппаратуры I2C (TWI).
@@ -514,6 +514,9 @@ ISR(TWI_vect)
         //Нет информации.
         case TW_NO_INFO:
             //Не делаем ничего.
+            i2c_set_status(I2C_STATUS_IDLE);
+            //Закончим передачу.
+            i2c_end();
             break;
         //Ошибка шины.
         case TW_BUS_ERROR:
@@ -631,9 +634,14 @@ ISR(TWI_vect)
         //case TW_MR_ARB_LOST:
             //Установим ошибку потери приоритета.
             i2c_set_status(I2C_STATUS_ARBITRATION_LOST);
-            //Сформируем старт как только освободиться шина.
+            //Установим флаг прерванной передачи.
+            _i2c_state.interrupted = true;
+            //сбросим буферы.
+            i2c_m_buffers_reset();
+            //Обозначим конец передачи.
+            i2c_end();
+            //Сформируем старт как только освободится шина.
             i2c_do_start();
-            //i2c_do_listen();
             break;
         //Receiver
         //Мастер получил ACK на перданный SLA+R.
