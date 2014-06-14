@@ -76,7 +76,7 @@
  * @param bits Число бит.
  * @return Битовая маска.
  */
-#define fixed_make_mask(bits) ((1 << bits) - 1)
+#define fixed_make_mask(bits) ((bits < 16) ? ((((uint16_t)1) << bits) - 1) : ((((uint32_t)1) << bits) - 1) )
 
 /**
  * Получает модуль числа с фиксированной запятой.
@@ -130,6 +130,6 @@
  * @param fractbits Число бит дробной части.
  * @param Дробную часть числа с фиксированной запятой.
  */
-#define fixed_get_fract_by_denom_bits(f, denom, fractbits) (fixed_get_fract_bits(f, fractbits) * (denom) / (1 << fractbits))
+#define fixed_get_fract_by_denom_bits(f, denom, fractbits) ((fixed_get_fract_bits(f, fractbits) * (denom)) >> fractbits)
 
 #endif	/* FIXED_H */

@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 #include "errors/errors.h"
 #include "defs/defs.h"
 
@@ -20,7 +21,7 @@
 typedef uint8_t graphics_byte_align_t;
 
 //! Тип размера.
-typedef uint16_t graphics_size_t;
+typedef size_t graphics_size_t;
 //! Тип позиции.
 typedef int16_t graphics_pos_t;
 
@@ -201,6 +202,32 @@ static ALWAYS_INLINE fill_mode_t graphics_fill_mode(graphics_t* graphics)
 extern void graphics_set_fill_mode(graphics_t* graphics, fill_mode_t mode);
 
 /**
+ * Сбрасывает флаг наличия грязных данных.
+ * @param graphics Растр.
+ */
+extern void graphics_dirty_reset(graphics_t* graphics);
+
+/**
+ * Получает флаг наличия грязных данных.
+ * @param graphics Растр.
+ * @return Флаг наличия грязных данных.
+ */
+extern bool graphics_dirty(graphics_t* graphics);
+/**
+ * Получает первый грязный байт.
+ * @param graphics Растр.
+ * @return Первый грязный байт.
+ */
+extern graphics_size_t graphics_dirty_from_byte(graphics_t* graphics);
+
+/**
+ * Получает последний грязный байт.
+ * @param graphics Растр.
+ * @return Последний грязный байт.
+ */
+extern graphics_size_t graphics_dirty_to_byte(graphics_t* graphics);
+
+/**
  * Устанавливает значение пиксела.
  * @param graphics Растр.
  * @param x Абсцисса.
@@ -217,18 +244,6 @@ extern void graphics_set_pixel(graphics_t* graphics, graphics_pos_t x, graphics_
  * @return  Значение пиксела.
  */
 extern pixel_value_t graphics_get_pixel(graphics_t* graphics, graphics_pos_t x, graphics_pos_t y);
-
-/**
- * Рисует линию.
- * @param graphics Растр.
- * @param x_from Начальная абсцисса.
- * @param y_from Начальная ордината.
- * @param x_to Конечная абсциса.
- * @param y_to Конечная ордината.
- */
-extern void graphics_line(graphics_t* graphics,
-                          graphics_pos_t x_from, graphics_pos_t y_from,
-                          graphics_pos_t x_to, graphics_pos_t y_to);
 
 /**
  * Рисует горизонтальную линию.
@@ -249,6 +264,18 @@ extern void graphics_hline(graphics_t* graphics, graphics_pos_t y, graphics_pos_
 extern void graphics_vline(graphics_t* graphics, graphics_pos_t x, graphics_pos_t y_from, graphics_pos_t y_to);
 
 /**
+ * Рисует линию.
+ * @param graphics Растр.
+ * @param x_from Начальная абсцисса.
+ * @param y_from Начальная ордината.
+ * @param x_to Конечная абсцисса.
+ * @param y_to Конечная ордината.
+ */
+extern void graphics_line(graphics_t* graphics,
+                          graphics_pos_t x_from, graphics_pos_t y_from,
+                          graphics_pos_t x_to, graphics_pos_t y_to);
+
+/**
  * Рисует круг.
  * @param graphics Растр.
  * @param center_x Абсцисса центра.
@@ -264,12 +291,27 @@ extern void graphics_circle(graphics_t* graphics,
  * @param graphics Растр.
  * @param x_from Начальная абсцисса.
  * @param y_from Начальная ордината.
- * @param x_to Конечная абсциса.
+ * @param x_to Конечная абсцисса.
  * @param y_to Конечная ордината.
  */
 extern void graphics_square(graphics_t* graphics,
                             graphics_pos_t x_from, graphics_pos_t y_from,
                             graphics_pos_t x_to, graphics_pos_t y_to);
+
+/**
+ * Копирует изображение из памяти программ.
+ * @param graphics Растр.
+ * @param x Абсцисса места копирования.
+ * @param y Ордината места копирования.
+ * @param pgm_image Адрес изображения.
+ * @param byte_align Расположение байта.
+ * @param width Ширина изображения.
+ * @param height Высота изображения.
+ */
+extern void graphics_copy_image_pgm(graphics_t* graphics,
+                                    graphics_pos_t x, graphics_pos_t y,
+                                    const uint8_t* pgm_image, graphics_byte_align_t byte_align,
+                                    graphics_size_t width, graphics_size_t height);
 
 #endif	/* GRAPHICS_H */
 

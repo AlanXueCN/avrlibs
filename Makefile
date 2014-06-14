@@ -85,6 +85,15 @@ dpy7par.o: ../lib/dpy7par/dpy7par.c
 timer0.o: ../lib/timer0/timer0.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
 
+cordic16.o: ../lib/cordic/cordic16.c
+	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
+
+cordic32.o: ../lib/cordic/cordic32.c
+	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
+
+cordic10_6.o: ../lib/cordic/cordic10_6.c
+	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
+
 uart.o: ../lib/uart/uart.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
 
@@ -119,6 +128,9 @@ adc.o: ../lib/adc/adc.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
 
 ds1302.o: ../lib/ds1302/ds1302.c
+	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
+
+lcd0108.o: ../lib/lcd0108/lcd0108.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
 
 button.o: ../lib/button/button.c
