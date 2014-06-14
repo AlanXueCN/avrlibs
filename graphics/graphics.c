@@ -232,18 +232,24 @@ void graphics_hline(graphics_t* graphics, graphics_pos_t y, graphics_pos_t x_fro
     }else{
         x_to ++;
     }
+
+    if(graphics->byte_align == GRAPHICS_BYTE_ALIGN_HORIZONTAL){
     
-    uint8_t pixel_value = graphics->pixel_value ? 0xff : 0x0;
-    uint8_t i;
+        uint8_t pixel_value = graphics->pixel_value ? 0xff : 0x0;
     
-    for(;x_from < x_to; x_from += 8){
-        if(graphics_can_store_pixels_byte(graphics, GRAPHICS_BYTE_ALIGN_HORIZONTAL, x_from, y, x_to, &n)){
-            graphics_set_pixel_byte(graphics, n, pixel_value);
-        }else{
-            for(i = 0; i < 8; i ++){
-                if(x_from + i >= x_to) break;
-                graphics_set_pixel(graphics, x_from + i, y);
+        for(;x_from < x_to;){
+            if(graphics_can_store_pixels_byte(graphics, GRAPHICS_BYTE_ALIGN_HORIZONTAL, x_from, y, x_to, &n)){
+                graphics_set_pixel_byte(graphics, n, pixel_value);
+                x_from += 8;
+            }else{
+                graphics_set_pixel(graphics, x_from, y);
+                x_from ++;
             }
+        }
+    }else{
+        for(;x_from < x_to;){
+            graphics_set_pixel(graphics, x_from, y);
+            x_from ++;
         }
     }
 }
@@ -266,17 +272,23 @@ void graphics_vline(graphics_t* graphics, graphics_pos_t x, graphics_pos_t y_fro
         y_to ++;
     }
     
-    uint8_t pixel_value = graphics->pixel_value ? 0xff : 0x0;
-    uint8_t i;
+    if(graphics->byte_align == GRAPHICS_BYTE_ALIGN_VERTICAL){
     
-    for(;y_from < y_to; y_from += 8){
-        if(graphics_can_store_pixels_byte(graphics, GRAPHICS_BYTE_ALIGN_VERTICAL, x, y_from, y_to, &n)){
-            graphics_set_pixel_byte(graphics, n, pixel_value);
-        }else{
-            for(i = 0; i < 8; i ++){
-                if(y_from + i >= y_to) break;
-                graphics_set_pixel(graphics, x, y_from + i);
+        uint8_t pixel_value = graphics->pixel_value ? 0xff : 0x0;
+        
+        for(;y_from < y_to;){
+            if(graphics_can_store_pixels_byte(graphics, GRAPHICS_BYTE_ALIGN_VERTICAL, x, y_from, y_to, &n)){
+                graphics_set_pixel_byte(graphics, n, pixel_value);
+                y_from += 8;
+            }else{
+                graphics_set_pixel(graphics, x, y_from);
+                y_from ++;
             }
+        }
+    }else{
+        for(;y_from < y_to;){
+            graphics_set_pixel(graphics, x, y_from);
+            y_from ++;
         }
     }
 }
