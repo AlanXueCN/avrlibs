@@ -60,7 +60,14 @@
 ALWAYS_INLINE static void lcd0108_write_to_bus(lcd0108_t* lcd, uint8_t data)
 {
     pin_on(&lcd->pin_e);
+    
+#ifdef LCD0108_DATA_FULL_PORT
     port_set_value(&lcd->port_data, data);
+#else
+    pin_range_set_value(&lcd->data_hi, data >> (lcd->data_lo.count));
+    pin_range_set_value(&lcd->data_lo, data & lcd->data_lo_value_mask);
+#endif
+    
     _delay_us(LCD0108_CYCLE_HALF_TIME_US);
     pin_off(&lcd->pin_e);
 }
@@ -89,7 +96,12 @@ ALWAYS_INLINE static uint8_t lcd0108_read_from_bus(lcd0108_t* lcd)
     pin_on(&lcd->pin_e);
     _delay_us(LCD0108_CYCLE_HALF_TIME_US);
     
+#ifdef LCD0108_DATA_FULL_PORT
     uint8_t data = port_get_value(&lcd->port_data);
+#else
+    uint8_t data = pin_range_get_value(&lcd->data_hi) << lcd->data_lo.count |
+                   pin_range_get_value(&lcd->data_lo);
+#endif
     
     pin_off(&lcd->pin_e);
     
@@ -148,7 +160,12 @@ static void lcd0108_begin_write(lcd0108_t* lcd, bool is_data, bool cs0, bool cs1
     //Сбросим пин RW.
     pin_off(&lcd->pin_rw);
     //Настроим шину на выход.
+#ifdef LCD0108_DATA_FULL_PORT
     port_set_out(&lcd->port_data);
+#else
+    pin_range_set_out(&lcd->data_hi);
+    pin_range_set_out(&lcd->data_lo);
+#endif
 }
 
 
@@ -180,10 +197,16 @@ static void lcd0108_end(lcd0108_t* lcd)
     pin_off(&lcd->pin_e);
     pin_off(&lcd->pin_rs);
     pin_off(&lcd->pin_rw);
-    //Настроем шину на вход.
+    //Настроем шину на вход и включим подтсяжку.
+#ifdef LCD0108_DATA_FULL_PORT
     port_set_in(&lcd->port_data);
-    //Включим подтяжку.
     port_pullup_enable(&lcd->port_data);
+#else
+    pin_range_set_in(&lcd->data_hi);
+    pin_range_set_in(&lcd->data_lo);
+    pin_range_pullup_enable(&lcd->data_hi);
+    pin_range_pullup_enable(&lcd->data_lo);
+#endif
 }
 
 /**
@@ -271,8 +294,13 @@ bool lcd0108_wait(lcd0108_t* lcd)
     return false;
 }
 
-err_t lcd0108_init(lcd0108_t* lcd,
-                    bool inverse_cs, uint8_t data_port,
+err_t lcd0108_init(lcd0108_t* lcd, bool inverse_cs,
+#ifdef LCD0108_DATA_FULL_PORT
+                    uint8_t data_port,
+#else
+                    uint8_t data_hi_port, uint8_t data_hi_offset, uint8_t data_hi_size,
+                    uint8_t data_lo_port, uint8_t data_lo_offset, uint8_t data_lo_size,
+#endif
                     uint8_t reset_port, uint8_t reset_pin_n,
                     uint8_t cs0_port, uint8_t cs0_pin_n,
                     uint8_t cs1_port, uint8_t cs1_pin_n,
@@ -280,10 +308,24 @@ err_t lcd0108_init(lcd0108_t* lcd,
                     uint8_t rw_port, uint8_t rw_pin_n,
                     uint8_t e_port, uint8_t e_pin_n)
 {
+    if(data_hi_size + data_lo_size != 8) return E_INVALID_VALUE;
+    
     lcd->inverse_cs = inverse_cs;
     
-    err_t err = port_init(&lcd->port_data, data_port);
+    err_t err;
+#ifdef LCD0108_DATA_FULL_PORT
+    err = port_init(&lcd->port_data, data_port);
     if(err != E_NO_ERROR) return err;
+#else
+    err = pin_range_init(&lcd->data_hi, data_hi_port, data_hi_offset, data_hi_size);
+    if(err != E_NO_ERROR) return err;
+    
+    err = pin_range_init(&lcd->data_lo, data_lo_port, data_lo_offset, data_lo_size);
+    if(err != E_NO_ERROR) return err;
+    
+    lcd->data_lo_value_mask = BIT_MAKE_MASK(lcd->data_lo.count, 0);
+    
+#endif
     
     err = pin_init(&lcd->pin_reset, reset_port, reset_pin_n);
     if(err != E_NO_ERROR) return err;

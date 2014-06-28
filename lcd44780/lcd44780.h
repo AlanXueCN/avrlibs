@@ -104,9 +104,9 @@ typedef uint8_t lcd44780_font_type_t;
 //! Первая строка.
 #define LCD44780_20X4_LINE_0     0x0
 //! Вторая строка.
-#define LCD44780_20X4_LINE_1     0x40
+#define LCD44780_20X4_LINE_1     0x14
 //! Третья строка.
-#define LCD44780_20X4_LINE_2     0x14
+#define LCD44780_20X4_LINE_2     0x40
 //! Четвёртая строка.
 #define LCD44780_20X4_LINE_3     0x54
 
@@ -172,12 +172,14 @@ extern uint8_t lcd44780_address(lcd44780_t* lcd);
 /**
  * Очищает LCD.
  * @param lcd LCD.
+ * @return Код ошибки.
  */
 extern err_t lcd44780_clear(lcd44780_t* lcd);
 
 /**
  * Возвращает курсор LCD домой.
  * @param lcd LCD.
+ * @return Код ошибки.
  */
 extern err_t lcd44780_home(lcd44780_t* lcd);
 
@@ -186,6 +188,7 @@ extern err_t lcd44780_home(lcd44780_t* lcd);
  * @param lcd LCD.
  * @param cursor_mode Режим смещения курсора.
  * @param display_mode Режим смещения дисплея.
+ * @return Код ошибки.
  */
 extern err_t lcd44780_entry_mode(lcd44780_t* lcd, lcd44780_entry_mode_t cursor_mode, lcd44780_entry_mode_t display_mode);
 
@@ -195,6 +198,7 @@ extern err_t lcd44780_entry_mode(lcd44780_t* lcd, lcd44780_entry_mode_t cursor_m
  * @param display_on флаг включения дисплея.
  * @param cursor_on флаг включения курсора.
  * @param cursor_blink_on флаг включения моргания курсора.
+ * @return Код ошибки.
  */
 extern err_t lcd44780_control(lcd44780_t* lcd, bool display_on, bool cursor_on, bool cursor_blink_on);
 
@@ -203,6 +207,7 @@ extern err_t lcd44780_control(lcd44780_t* lcd, bool display_on, bool cursor_on, 
  * @param lcd LCD.
  * @param shift_entry Смещаемый элемент.
  * @param shift_direction Направление смещения.
+ * @return Код ошибки.
  */
 extern err_t lcd44780_shift(lcd44780_t* lcd, lcd44780_shift_entry_t shift_entry, lcd44780_shift_direction_t shift_direction);
 
@@ -211,6 +216,7 @@ extern err_t lcd44780_shift(lcd44780_t* lcd, lcd44780_shift_entry_t shift_entry,
  * @param lcd LCD.
  * @param line_number Число линий (задаётся константой).
  * @param font_type Тип шрифта.
+ * @return Код ошибки.
  */
 extern err_t lcd44780_configure(lcd44780_t* lcd, lcd44780_line_number_t line_number, lcd44780_font_type_t font_type);
 
@@ -218,6 +224,7 @@ extern err_t lcd44780_configure(lcd44780_t* lcd, lcd44780_line_number_t line_num
  * Устанавливает курсор на CGRAM на заданный адрес.
  * @param lcd LCD.
  * @param address Адрес.
+ * @return Код ошибки.
  */
 extern err_t lcd44780_set_cgram(lcd44780_t* lcd, uint8_t address);
 
@@ -225,6 +232,7 @@ extern err_t lcd44780_set_cgram(lcd44780_t* lcd, uint8_t address);
  * Устанавливает курсор на DDRAM на заданный адрес.
  * @param lcd LCD.
  * @param address Адрес.
+ * @return Код ошибки.
  */
 extern err_t lcd44780_set_ddram(lcd44780_t* lcd, uint8_t address);
 
@@ -232,6 +240,7 @@ extern err_t lcd44780_set_ddram(lcd44780_t* lcd, uint8_t address);
  * Записывает в LCD символ.
  * @param lcd LCD.
  * @param c Символ.
+ * @return Код ошибки.
  */
 extern err_t lcd44780_putc(lcd44780_t* lcd, char c);
 
@@ -247,6 +256,7 @@ extern char lcd44780_getc(lcd44780_t* lcd);
  * Записывает в lcd строку символов.
  * @param lcd LCD.
  * @param s ASCIIz строка.
+ * @return Код ошибки.
  */
 extern err_t lcd44780_puts(lcd44780_t* lcd, const char* s);
 
@@ -255,6 +265,7 @@ extern err_t lcd44780_puts(lcd44780_t* lcd, const char* s);
  * @param lcd LCD.
  * @param s Массив символов.
  * @param size Размер массива символов.
+ * @return Код ошибки.
  */
 extern err_t lcd44780_write(lcd44780_t* lcd, const char* s, uint8_t size);
 

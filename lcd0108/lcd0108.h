@@ -12,12 +12,20 @@
 #include "ports/ports.h"
 #include "errors/errors.h"
 
+//#define LCD0108_DATA_FULL_PORT
+
 /**
  * Структура LCD.
  */
 typedef struct _Lcd0108 {
     bool inverse_cs;
+#ifdef LCD0108_DATA_FULL_PORT
     port_t port_data;
+#else
+    pin_range_t data_hi;
+    pin_range_t data_lo;
+    uint8_t data_lo_value_mask;
+#endif
     pin_t pin_reset;
     pin_t pin_cs0;
     pin_t pin_cs1;
@@ -59,8 +67,13 @@ typedef struct _Lcd0108 {
  * @param e_pin_n Номер пина входа E.
  * @return Код ошибки.
  */
-extern err_t lcd0108_init(lcd0108_t* lcd,
-                    bool inverse_cs, uint8_t data_port,
+extern err_t lcd0108_init(lcd0108_t* lcd, bool inverse_cs,
+#ifdef LCD0108_DATA_FULL_PORT
+                    uint8_t data_port,
+#else
+                    uint8_t data_hi_port, uint8_t data_hi_offset, uint8_t data_hi_size,
+                    uint8_t data_lo_port, uint8_t data_lo_offset, uint8_t data_lo_size,
+#endif
                     uint8_t reset_port, uint8_t reset_pin_n,
                     uint8_t cs0_port, uint8_t cs0_pin_n,
                     uint8_t cs1_port, uint8_t cs1_pin_n,

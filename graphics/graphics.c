@@ -42,18 +42,18 @@ void graphics_clear(graphics_t* graphics)
 
 graphics_size_t graphics_width_bytes(graphics_t* graphics)
 {
-    if(graphics->byte_align == GRAPHICS_BYTE_ALIGN_HORIZONTAL){
-        return graphics->width >> 3;
+    if(graphics->byte_align == GRAPHICS_BYTE_ALIGN_VERTICAL){
+        return graphics->width;
     }
-    return graphics->width;
+    return graphics->width >> 3;
 }
 
 graphics_size_t graphics_height_bytes(graphics_t* graphics)
 {
-    if(graphics->byte_align == GRAPHICS_BYTE_ALIGN_HORIZONTAL){
-        return graphics->height;
+    if(graphics->byte_align == GRAPHICS_BYTE_ALIGN_VERTICAL){
+        return graphics->height >> 3;
     }
-    return graphics->height >> 3;
+    return graphics->height;
 }
 
 void graphics_set_pixel_value(graphics_t* graphics, pixel_value_t value)
@@ -83,12 +83,12 @@ static bool graphics_get_pixel_address(graphics_t* graphics, graphics_pos_t x, g
     if(x < 0 || x >= graphics->width) return false;
     if(y < 0 || y >= graphics->height) return false;
     
-    if(graphics->byte_align == GRAPHICS_BYTE_ALIGN_HORIZONTAL){
-        if(byte_n) *byte_n = ((size_t)graphics->width * y + x) >> 3;
-        if(bit_n)  *bit_n = (x & 0x7);
-    }else{
+    if(graphics->byte_align == GRAPHICS_BYTE_ALIGN_VERTICAL){
         if(byte_n) *byte_n = ((size_t)graphics->width * (y >> 3)) + x;
         if(bit_n)  *bit_n = (y & 0x7);
+    }else{
+        if(byte_n) *byte_n = ((size_t)graphics->width * y + x) >> 3;
+        if(bit_n)  *bit_n = (x & 0x7);
     }
     
     return true;
@@ -199,10 +199,10 @@ static bool graphics_can_store_pixels_byte(graphics_t* graphics,
     if(graphics->byte_align != byte_align) return false;
     
     graphics_pos_t i;
-    if(graphics->byte_align == GRAPHICS_BYTE_ALIGN_HORIZONTAL){
-        i = x;
-    }else{
+    if(graphics->byte_align == GRAPHICS_BYTE_ALIGN_VERTICAL){
         i = y;
+    }else{
+        i = x;
     }
     
     if(end - i < 8) return false;
@@ -376,10 +376,10 @@ static void graphics_fill(graphics_t* graphics, graphics_pos_t first_i, graphics
         case FILL_MODE_NONE:
             break;
         case FILL_MODE_SOLID:
-            if(graphics->byte_align == GRAPHICS_BYTE_ALIGN_HORIZONTAL){
-                graphics_hline(graphics, i, j_from, j_to);
-            }else{
+            if(graphics->byte_align == GRAPHICS_BYTE_ALIGN_VERTICAL){
                 graphics_vline(graphics, i, j_from, j_to);
+            }else{
+                graphics_hline(graphics, i, j_from, j_to);
             }
             break;
     }
@@ -490,21 +490,21 @@ void graphics_square(graphics_t* graphics,
                 x_from ++;
                 x_to --;
                 
-                if(graphics->byte_align == GRAPHICS_BYTE_ALIGN_HORIZONTAL){
-
-                    tmp = y_from;
-
-                    while(y_from <= y_to){
-                        graphics_fill(graphics, tmp, y_from, x_from, x_to);
-                        y_from ++;
-                    }
-                }else{
+                if(graphics->byte_align == GRAPHICS_BYTE_ALIGN_VERTICAL){
 
                     tmp = x_from;
 
                     while(x_from <= x_to){
                         graphics_fill(graphics, tmp, x_from, y_from, y_to);
                         x_from ++;
+                    }
+                }else{
+
+                    tmp = y_from;
+
+                    while(y_from <= y_to){
+                        graphics_fill(graphics, tmp, y_from, x_from, x_to);
+                        y_from ++;
                     }
                 }
             }
@@ -515,7 +515,7 @@ void graphics_square(graphics_t* graphics,
 void graphics_copy_image_pgm(graphics_t* graphics,
                              graphics_pos_t x, graphics_pos_t y,
                              const uint8_t* pgm_image, graphics_byte_align_t byte_align,
-                             graphics_size_t width, graphics_size_t height)
+                             graphics_size_t width, graphics_size_t height, graphics_size_t img_data_width)
 {
     if(x >= (graphics_pos_t)graphics->width || y >= (graphics_pos_t)graphics->height) return;
     //if(x + width <= 0 || y + height <= 0) return;
@@ -529,16 +529,7 @@ void graphics_copy_image_pgm(graphics_t* graphics,
     if(x_end < 0) return;
     if(y_end < 0) return;
     
-    if(byte_align == GRAPHICS_BYTE_ALIGN_HORIZONTAL){
-        if(y < 0){
-            pgm_image += -y * width;
-            y = 0;
-        }
-        if(x < 0){
-            pgm_image += -x / 8;
-            x %= 8;
-        }
-    }else{//vertical
+    if(byte_align == GRAPHICS_BYTE_ALIGN_VERTICAL){
         if(x < 0){
             pgm_image += -x;
             x = 0;
@@ -546,6 +537,15 @@ void graphics_copy_image_pgm(graphics_t* graphics,
         if(y < 0){
             pgm_image += -y / 8 * width;
             y %= 8;
+        }
+    }else{//horizontal
+        if(y < 0){
+            pgm_image += -y * width;
+            y = 0;
+        }
+        if(x < 0){
+            pgm_image += -x / 8;
+            x %= 8;
         }
     }
     
@@ -560,7 +560,26 @@ void graphics_copy_image_pgm(graphics_t* graphics,
     
     graphics_size_t pixel_byte_n;
     
-    if(byte_align == GRAPHICS_BYTE_ALIGN_HORIZONTAL){
+    if(byte_align == GRAPHICS_BYTE_ALIGN_VERTICAL){
+        for(; y < y_end; y += 8){
+            img_i = 0;
+            for(i = x; i < x_end; i ++){
+
+                img_byte = pgm_read_byte(&pgm_image[img_i]); img_i ++;
+
+                if(graphics_can_store_pixels_byte(graphics, byte_align, i, y, y_end, &pixel_byte_n)){
+                    graphics_set_pixel_byte(graphics, pixel_byte_n, img_byte);
+                }else{
+                    for(bit_i = 0; bit_i < 8; bit_i ++){
+                        if(img_byte & 0x1) graphics_set_pixel(graphics, i, y + bit_i);
+                        if(y + bit_i >= y_end) break;
+                        img_byte >>= 1;
+                    }
+                }
+            }
+            pgm_image += img_data_width;
+        }
+    }else{//horizontal
         for(; y < y_end; y ++){
             img_i = 0;
             for(i = x; i < x_end; i += 8){
@@ -577,26 +596,7 @@ void graphics_copy_image_pgm(graphics_t* graphics,
                     }
                 }
             }
-            pgm_image += width;
-        }
-    }else{//vertical
-        for(; y < y_end; y += 8){ 
-            img_i = 0;
-            for(i = x; i < x_end; i ++){
-
-                img_byte = pgm_read_byte(&pgm_image[img_i]); img_i ++;
-
-                if(graphics_can_store_pixels_byte(graphics, byte_align, i, y, y_end, &pixel_byte_n)){
-                    graphics_set_pixel_byte(graphics, pixel_byte_n, img_byte);
-                }else{
-                    for(bit_i = 0; bit_i < 8; bit_i ++){
-                        if(img_byte & 0x1) graphics_set_pixel(graphics, i, y + bit_i);
-                        if(y + bit_i >= y_end) break;
-                        img_byte >>= 1;
-                    }
-                }
-            }
-            pgm_image += width;
+            pgm_image += img_data_width;
         }
     }
 }

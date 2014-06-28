@@ -307,11 +307,13 @@ extern void graphics_square(graphics_t* graphics,
  * @param byte_align Расположение байта.
  * @param width Ширина изображения.
  * @param height Высота изображения.
+ * @param img_data_width Ширина блока данных изображения.
  */
 extern void graphics_copy_image_pgm(graphics_t* graphics,
                                     graphics_pos_t x, graphics_pos_t y,
                                     const uint8_t* pgm_image, graphics_byte_align_t byte_align,
-                                    graphics_size_t width, graphics_size_t height);
+                                    graphics_size_t width, graphics_size_t height,
+                                    graphics_size_t img_data_width);
 
 #endif	/* GRAPHICS_H */
 

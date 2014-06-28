@@ -46,6 +46,9 @@ clean:
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
 
+font.o: ../lib/font/font.c
+	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
+
 lcd8544.o: ../lib/lcd8544/lcd8544.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
 
@@ -65,6 +68,9 @@ graphics.o: ../lib/graphics/graphics.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
 
 future.o: ../lib/future/future.c
+	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
+
+gyro6050.o: ../lib/gyro6050/gyro6050.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
 
 lcd44780.o: ../lib/lcd44780/lcd44780.c
