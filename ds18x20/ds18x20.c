@@ -130,7 +130,7 @@ err_t ds18x20_read_temp(ds18x20_t* sensor, fixed16_t* temp)
                 DS18X20_RESOLUTION_BITS_OFFSET);
     res_mask = 0xff << inv_res;
     
-    res_temp |= (uint16_t)(scratchpad.temp_msb & DS18X20_TEMP_INT_MASK_HI) << (FIXED_PART_SIZE + DS18X20_TEMP_PART_SIZE);
+    res_temp |= (uint16_t)(scratchpad.temp_msb & DS18X20_TEMP_INT_MASK_HI) << (FIXED16_FRACT_BITS + DS18X20_TEMP_PART_SIZE);
     res_temp |= (uint16_t)(scratchpad.temp_lsb & DS18X20_TEMP_INT_MASK_LO) << DS18X20_TEMP_PART_SIZE;
     res_temp |= (uint16_t)((scratchpad.temp_lsb & DS18X20_TEMP_FRACT_MASK) & res_mask) << DS18X20_TEMP_PART_SIZE;
     

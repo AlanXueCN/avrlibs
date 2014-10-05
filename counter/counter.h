@@ -80,5 +80,11 @@ extern counter_t system_counter_ticks();
  */
 extern counter_t system_counter_ticks_per_sec();
 
+/**
+ * Устанавливает значение числа тиков за секунду.
+ * @param ticks_per_sec Число тиков за секунду.
+ */
+extern void system_counter_set_ticks_per_sec(counter_t ticks_per_sec);
+
 #endif	/* COUNTER_H */
 

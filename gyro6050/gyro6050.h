@@ -345,20 +345,6 @@ extern void gyro6050_end_calibration(void);
 extern err_t gyro6050_read(void);
 
 /**
- * Получает вес угла по данным акселерометра.
- * Диапазон от 0 до 100 включительно.
- * @return Вес угла по данным акселерометра.
- */
-extern uint8_t gyro6050_accel_angle_weight(void);
-
-/**
- * Устанавливает вес угла по данным акселерометра.
- * Диапазон от 0 до 100 включительно.
- * @param weight Вес угла по данным акселерометра.
- */
-extern void gyro6050_set_accel_angle_weight(uint8_t weight);
-
-/**
  * Вычисляет ориентацию по полученным данным.
  */
 extern void gyro6050_calculate(void);
@@ -388,22 +374,22 @@ extern fixed10_6_t gyro6050_accel_y(void);
 extern fixed10_6_t gyro6050_accel_z(void);
 
 /**
- * Получает угол поворота вокруг оси X.
- * @return Угол поворота вокруг оси X.
+ * Получает угловую скорость по оси X.
+ * @return Угловую скорость по оси X.
  */
-extern fixed10_6_t gyro6050_angle_x(void);
+extern fixed10_6_t gyro6050_gyro_w_x(void);
 
 /**
- * Получает угол поворота вокруг оси Y.
- * @return Угол поворота вокруг оси Y.
+ * Получает угловую скорость по оси Y.
+ * @return Угловую скорость по оси Y.
  */
-extern fixed10_6_t gyro6050_angle_y(void);
+extern fixed10_6_t gyro6050_gyro_w_y(void);
 
 /**
- * Получает угол поворота вокруг оси Z.
- * @return Угол поворота вокруг оси Z.
+ * Получает угловую скорость по оси Z.
+ * @return Угловую скорость по оси Z.
  */
-extern fixed10_6_t gyro6050_angle_z(void);
+extern fixed10_6_t gyro6050_gyro_w_z(void);
 
 #endif	/* GYRO6050_H */
 

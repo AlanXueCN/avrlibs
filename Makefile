@@ -1,149 +1,170 @@
-OBJECTS=
+# Основная цель.
+TARGET    = main
 
-MCU_NAME=mega
-MCU_NUMBER=16
-F_CPU=8000000ULL
+# Объектные файлы.
+OBJECTS   = 
 
-MMCU=at$(MCU_NAME)$(MCU_NUMBER)
-DEV_DEF=__AVR_AT$(MCU_NAME)$(MCU_NUMBER)__
+# Собственные библиотеки в исходниках.
+SRC_LIBS += 
 
-MCUFLAGS=-mmcu=$(MMCU)
+# Библиотеки.
+LIBS     += c
 
-CFLAGS=-O2 $(MCUFLAGS) -D$(DEV_DEF) -DF_CPU=$(F_CPU)
+# Оптимизация, вторая часть флага компилятора -O.
+OPTIMIZE  = s
 
-LDFLAGS=-Wl,-Map=$(TARGET).map,--cref $(MCUFLAGS)
+# Флаги отладки.
+DEBUG     =
 
-LIBSPATH=-L/opt/cross/avr/avr/lib/avr4
-LIBS=-lc
+# МК.
+# Семейство МК.
+MCU_FAMILY = mega
+# Номер МК в семействе.
+MCU_NUMBER = 16
+# Имя МК.
+MCU_NAME   = at$(MCU_FAMILY)$(MCU_NUMBER)
+# Частота тактирования.
+F_CPU      = 16000000ULL
 
-INCS=-I../lib
+# Макросы.
+# Частота тактирования.
+DEFINES   += F_CPU=$(F_CPU)
+# Макрос семейства МК.
+DEFINES   += __AVR_AT$(MCU_FAMILY)$(MCU_NUMBER)__
+# Прочие.
+DEFINES   += 
 
-TARGET=main
-TARGET_HEX=$(TARGET).hex
-TARGET_EPP_HEX=$(TARGET).epp
-TARGET_EPP_BIN=$(TARGET).epp.bin
+# Программатор
+PROGRAMMER = usbasp
+# AVRDude
+AVRDUDE = /usr/bin/avrdude
 
-CC=avr-gcc
-LD=avr-gcc
-OBJCOPY=avr-objcopy
-RM=rm -f
-STRIP=avr-strip
-SIZE=avr-size
+# Путь к собственным библиотекам в исходниках.
+SRC_LIBS_PATH     = ../lib
+# Пути ко всем собственным библиотекам в исходниках.
+SRC_LIBS_ALL_PATH = $(wildcard $(addsuffix /*, $(SRC_LIBS_PATH)))
+
+# Пути библиотек.
+LIBS_PATH += /opt/cross/avr/avr/lib/avr4
+
+# Флаги МК.
+MCUFLAGS  += -mmcu=$(MCU_NAME)
+
+# Пути заголовочных файлов.
+INCS     += .
+INCS     += $(SRC_LIBS_PATH)
+
+# Пути с исходниками.
+VPATH   += .
+VPATH   += $(SRC_LIBS_ALL_PATH)
+
+# Объектные файлы.
+# Собственные библиотеки в исходниках.
+OBJECTS += $(addsuffix .o, $(SRC_LIBS))
+
+# Ассемблер листинги.
+ASM  += $(patsubst %.o, %.s, $(OBJECTS))
+
+# Флаги компилятора С.
+# Использование каналов.
+CFLAGS    += -pipe
+# Флаги МК.
+CFLAGS    += $(MCUFLAGS)
+# Флаги оптимизации.
+CFLAGS    += -O$(OPTIMIZE)
+# Флаги отладки.
+CFLAGS    += $(DEBUG)
+# Выводить все предупреждения.
+CFLAGS    += -Wall
+# Без встроенных функций. (включено в -ffreestanding)
+# CFLAGS    += -fno-builtin
+# Код будет выполнятся без ОС.
+CFLAGS    += -ffreestanding
+# Помещать функции в отдельные секции.
+CFLAGS    += -ffunction-sections
+# Помещать данные в отдельные секции.
+CFLAGS    += -fdata-sections
+# Пути поиска заголовочных файлов.
+CFLAGS    += $(addprefix -I, $(INCS))
+# Макросы.
+CFLAGS    += $(addprefix -D, $(DEFINES))
+
+# Флаги компоновщика.
+# Флаги МК.
+LDFLAGS   += $(MCUFLAGS)
+# Удаление ненужных секций.
+LDFLAGS   += -Wl,--gc-sections
+# Генерация карты исполнимого файла.
+LDFLAGS   += -Wl,-Map=$(TARGET_MAP),--cref
+# Пути поиска библиотек.
+LDFLAGS   += $(addprefix -L, $(LIBS_PATH))
+# Библиотеки.
+LDFLAGS   += $(addprefix -l, $(LIBS))
+
+# Флаги ассемблера.
+# Флаги МК.
+ASFLAGS   += $(MCUFLAGS)
+ASFLAGS   += 
+
+# Тулкит.
+TOOLKIT_PREFIX=avr-
+AS      = $(TOOLKIT_PREFIX)gcc
+CC      = $(TOOLKIT_PREFIX)gcc
+LD      = $(TOOLKIT_PREFIX)gcc
+OBJCOPY = $(TOOLKIT_PREFIX)objcopy
+STRIP   = $(TOOLKIT_PREFIX)strip
+SIZE    = $(TOOLKIT_PREFIX)size
+
+# Прочие утилиты.
+RM      = rm -f
+
+# Побочные цели.
+# Файл прошивки.
+TARGET_HEX = $(TARGET).hex
+# Файл карты бинарного файла.
+TARGET_MAP = $(TARGET).map
+# Бинарный файл прошивки.
+TARGET_BIN = $(TARGET).bin
 
 
+all: $(TARGET) size bin hex
 
-all: $(OBJECTS)
-	$(LD) -o $(TARGET) $(LDFLAGS) $^ $(LIBSPATH) $(LIBS)
+strip: $(TARGET)
 	$(STRIP) $(TARGET)
-	$(SIZE) -A $(TARGET)
-	$(OBJCOPY) -O ihex -R .eeprom $(TARGET) $(TARGET_HEX)
-	$(OBJCOPY) -O ihex -j .eeprom --change-section-lma .eeprom=0 $(TARGET) $(TARGET_EPP_HEX)
-	$(OBJCOPY) -O binary -j .eeprom --change-section-lma .eeprom=0 $(TARGET) $(TARGET_EPP_BIN)
+
+size: $(TARGET)
+	$(SIZE) -B $(TARGET)
+
+hex: $(TARGET)
+	$(OBJCOPY) -O ihex $(TARGET) $(TARGET_HEX)
+
+bin: $(TARGET)
+	$(OBJCOPY) -O binary $(TARGET) $(TARGET_BIN)
+
+asm: $(ASM)
+
+$(TARGET): $(OBJECTS)
+	$(LD) -o $@ $(LDFLAGS) $^
+
+%.o: %.c
+	$(CC) -c -o $@ $(CFLAGS) $<
+
+%.o: %.s
+	$(AS) -c -o $@ $(ASFLAGS) $<
+
+%.s: %.c
+	$(CC) -S -o $@ $(CFLAGS) $<
 
 clean:
 	$(RM) $(OBJECTS)
+	$(RM) $(ASM)
 
-%.o: %.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
+clean_all: clean
+	$(RM) $(TARGET)
+	$(RM) $(TARGET_BIN)
+	$(RM) $(TARGET_HEX)
+	$(RM) $(TARGET_MAP)
 
-font.o: ../lib/font/font.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
+burn: $(TARGET_HEX)
+	$(AVRDUDE) -c $(PROGRAMMER) -p $(MCU_NAME) -e -U flash:w:$(TARGET_HEX)
 
-lcd8544.o: ../lib/lcd8544/lcd8544.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-timer2.o: ../lib/timer2/timer2.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-ports.o: ../lib/ports/ports.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-ssi.o: ../lib/ssi/ssi.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-display_7seg.o: ../lib/display_7seg/display_7seg.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-graphics.o: ../lib/graphics/graphics.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-future.o: ../lib/future/future.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-gyro6050.o: ../lib/gyro6050/gyro6050.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-lcd44780.o: ../lib/lcd44780/lcd44780.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-circular_buffer.o: ../lib/buffer/circular_buffer.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-dpy7ser.o: ../lib/dpy7ser/dpy7ser.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-ds18x20.o: ../lib/ds18x20/ds18x20.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-dpy7par.o: ../lib/dpy7par/dpy7par.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-timer0.o: ../lib/timer0/timer0.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-cordic16.o: ../lib/cordic/cordic16.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-cordic32.o: ../lib/cordic/cordic32.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-cordic10_6.o: ../lib/cordic/cordic10_6.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-uart.o: ../lib/uart/uart.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-delay.o: ../lib/utils/delay.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-ds1307.o: ../lib/ds1307/ds1307.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-i2c.o: ../lib/i2c/i2c.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-i2c_with_slave_listen.o: ../lib/i2c/i2c_with_slave_listen.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-one_wire_search.o: ../lib/one_wire/one_wire_search.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-one_wire.o: ../lib/one_wire/one_wire.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-int1.o: ../lib/ext_int/int1.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-int0.o: ../lib/ext_int/int0.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-spi.o: ../lib/spi/spi.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-adc.o: ../lib/adc/adc.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-ds1302.o: ../lib/ds1302/ds1302.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-lcd0108.o: ../lib/lcd0108/lcd0108.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-button.o: ../lib/button/button.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-timer1.o: ../lib/timer1/timer1.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)
-
-counter.o: ../lib/counter/counter.c
-	$(CC) -c -o $@ $< $(CFLAGS) $(INCS)

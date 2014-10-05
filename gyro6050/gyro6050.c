@@ -115,13 +115,9 @@ typedef struct _Gyro6050Data{
     
     fixed10_6_t temp;
     
-    fixed10_6_t angle_x;
-    fixed10_6_t angle_y;
-    fixed10_6_t angle_z;
-    
-    fixed10_6_t prev_gyro_x;
-    fixed10_6_t prev_gyro_y;
-    fixed10_6_t prev_gyro_z;
+    fixed10_6_t gyro_w_x;
+    fixed10_6_t gyro_w_y;
+    fixed10_6_t gyro_w_z;
 }gyro6050_data_t;
 
 //! Кэшированные конфигурационные данные.
@@ -152,6 +148,8 @@ typedef struct _Gyro5060{
     future_t future;
     //! Состояние (текущее действие).
     uint8_t state;
+    //! Вычисленные данные.
+    gyro6050_data_t data;
     //! Кэшированные данные.
     gyro6050_cached_data_t cached_data;
     //! Сырые данные.
@@ -164,12 +162,6 @@ typedef struct _Gyro5060{
     bool new_data_avail;
     //! Байт данных для обмена.
     uint8_t data_byte;
-    //! Время с последних измерений.
-    counter_t counter;
-    //! Вес угла по данным акселерометра.
-    uint8_t accel_angle_weight;
-    //! Вычисленные данные.
-    gyro6050_data_t data;
 }gyro5060_t;
 
 //! Состояние гироскопа.
@@ -344,6 +336,7 @@ static void gyro6050_do(void)
             }
             break;
     }
+    gyro.state = GYRO6050_STATE_IDLE;
 }
 
 static err_t gyro6050_write_data(uint8_t state, uint8_t page_address, const void* data, uint8_t data_size)
@@ -385,10 +378,6 @@ err_t gyro6050_init(i2c_address_t address)
     gyro.data_byte = 0;
     
     gyro.new_data_avail = false;
-    
-    gyro.accel_angle_weight = 0;
-    
-    gyro.counter = system_counter_ticks();
     
     gyro.calibrations_count = 0;
     
@@ -615,8 +604,6 @@ void gyro6050_end_calibration(void)
     gyro.calibrated_gyro_data.gyro_x.value /= gyro.calibrations_count;
     gyro.calibrated_gyro_data.gyro_y.value /= gyro.calibrations_count;
     gyro.calibrated_gyro_data.gyro_z.value /= gyro.calibrations_count;
-    
-    gyro.counter = system_counter_ticks();
 }
 
 err_t gyro6050_read(void)
@@ -624,18 +611,6 @@ err_t gyro6050_read(void)
     if(!gyro6050_wait_current_op()) return E_BUSY;
     return gyro6050_read_data(GYRO6050_STATE_DATA_READ, GYRO6050_ACCEL_TEMP_GYRO_DATA_ADDRESS, &gyro.raw_data, sizeof(gyro6050_raw_data_t));
 }
-
-uint8_t gyro6050_accel_angle_weight(void)
-{
-    return gyro.accel_angle_weight;
-}
-
-void gyro6050_set_accel_angle_weight(uint8_t weight)
-{
-    if(weight > GYRO6050_ACCEL_ANGLE_WEIGHT_MAX) weight = GYRO6050_ACCEL_ANGLE_WEIGHT_MAX;
-    gyro.accel_angle_weight = weight;
-}
-
 /**
  * Получает значение сырых данных для угловой скорости в 1 градус / с.
  * @return Значение сырых данных для угловой скорости в 1 градус / с.
@@ -708,74 +683,18 @@ void gyro6050_calculate(void)
     gyro.data.accel_z = fixed10_6_make_from_fract((int32_t)gyro.raw_data.accel_data.accel_z.value, raw_one_g);
     
     // Вычислим данные гироскопа.
-    // Угловые скорости по осям гироскопа.
-    fixed10_6_t gyro_w_x, gyro_w_y, gyro_w_z;
     // X.
-    gyro_w_x = fixed10_6_make_from_fract(
+    gyro.data.gyro_w_x = fixed10_6_make_from_fract(
                 (int32_t)(gyro.raw_data.gyro_data.gyro_x.value -
                           gyro.calibrated_gyro_data.gyro_x.value), raw_one_dps);
     // Y.
-    gyro_w_y = fixed10_6_make_from_fract(
+    gyro.data.gyro_w_y = fixed10_6_make_from_fract(
                 (int32_t)(gyro.raw_data.gyro_data.gyro_y.value -
                           gyro.calibrated_gyro_data.gyro_y.value), raw_one_dps);
     // Z.
-    gyro_w_z = fixed10_6_make_from_fract(
+    gyro.data.gyro_w_z = fixed10_6_make_from_fract(
                 (int32_t)(gyro.raw_data.gyro_data.gyro_z.value -
                           gyro.calibrated_gyro_data.gyro_z.value), raw_one_dps);
-    
-    // Углы.
-    // Угол по каждой оси по данным акселерометра.
-    fixed10_6_t accel_angle_x, accel_angle_y, accel_angle_z;
-    // X.
-    cordic10_6_atan2_hyp(gyro.data.accel_z, gyro.data.accel_y, &accel_angle_x, NULL);
-    // Y.
-    cordic10_6_atan2_hyp(gyro.data.accel_z, gyro.data.accel_x, &accel_angle_y, NULL);
-    // Z.
-    cordic10_6_atan2_hyp(gyro.data.accel_x, gyro.data.accel_y, &accel_angle_z, NULL);
-    
-    // Углы по осям гироскопа.
-    fixed10_6_t gyro_angle_x = 0; //X.
-    fixed10_6_t gyro_angle_y = 0; //Y.
-    fixed10_6_t gyro_angle_z = 0; //Z.
-    // Если это не первое вычисление.
-    if(gyro.data.angle_x != 0 || gyro.data.angle_y != 0 || gyro.data.angle_z != 0){
-        // Проинтегрируем скорость вращения по углам гироскопа.
-        // Время интегрирования.
-        counter_t dt = system_counter_diff(&gyro.counter);
-        // Установим время последнего обновления.
-        gyro.counter = system_counter_ticks();
-        // X.
-        gyro_angle_x = gyro.data.angle_x + ((int32_t)gyro_w_x + gyro.data.prev_gyro_x) / 2 * (int32_t)dt / (int32_t)system_counter_ticks_per_sec();
-        // Y.
-        gyro_angle_y = gyro.data.angle_y + ((int32_t)gyro_w_y + gyro.data.prev_gyro_y) / 2 * (int32_t)dt / (int32_t)system_counter_ticks_per_sec();
-        // Z.
-        gyro_angle_z = gyro.data.angle_z + ((int32_t)gyro_w_z + gyro.data.prev_gyro_z) / 2 * (int32_t)dt / (int32_t)system_counter_ticks_per_sec();
-    // Иначе проинициализируем углы по акселерометру.
-    }else{
-        gyro_angle_x = accel_angle_x;
-        gyro_angle_y = accel_angle_y;
-        gyro_angle_z = accel_angle_z;
-    }
-    // Сохраним текущие значения скоростей вращения по осям гироскопа.
-    gyro.data.prev_gyro_x = gyro_w_x;
-    gyro.data.prev_gyro_y = gyro_w_y;
-    gyro.data.prev_gyro_z = gyro_w_z;
-    
-    // Отфильтруем углы.
-    // Вес угла гироскопа.
-    uint8_t gyro_angle_weight = GYRO6050_ACCEL_ANGLE_WEIGHT_MAX - gyro.accel_angle_weight;
-    // X.
-    gyro.data.angle_x = ((int32_t)accel_angle_x * gyro.accel_angle_weight +
-                         (int32_t)gyro_angle_x  * gyro_angle_weight)
-                                    / GYRO6050_ACCEL_ANGLE_WEIGHT_MAX;
-    // Y.
-    gyro.data.angle_y = ((int32_t)accel_angle_y * gyro.accel_angle_weight +
-                         (int32_t)gyro_angle_y  * gyro_angle_weight)
-                                    / GYRO6050_ACCEL_ANGLE_WEIGHT_MAX;
-    // Z.
-    gyro.data.angle_z = ((int32_t)accel_angle_z * gyro.accel_angle_weight +
-                         (int32_t)gyro_angle_z  * gyro_angle_weight)
-                                    / GYRO6050_ACCEL_ANGLE_WEIGHT_MAX;
     
     // Установим флаг отсутствия новых данных.
     gyro.new_data_avail = false;
@@ -798,20 +717,20 @@ fixed10_6_t gyro6050_accel_y(void)
 
 fixed10_6_t gyro6050_accel_z(void)
 {
-    return gyro.data.accel_z;
+    return gyro.data.gyro_w_z;
 }
 
-fixed10_6_t gyro6050_angle_x(void)
+fixed10_6_t gyro6050_gyro_w_x(void)
 {
-    return gyro.data.angle_x;
+    return gyro.data.gyro_w_x;
 }
 
-fixed10_6_t gyro6050_angle_y(void)
+fixed10_6_t gyro6050_gyro_w_y(void)
 {
-    return gyro.data.angle_y;
+    return gyro.data.gyro_w_y;
 }
 
-fixed10_6_t gyro6050_angle_z(void)
+fixed10_6_t gyro6050_gyro_w_z(void)
 {
-    return gyro.data.angle_z;
+    return gyro.data.gyro_w_z;
 }

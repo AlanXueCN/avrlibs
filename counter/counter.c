@@ -54,3 +54,8 @@ counter_t system_counter_ticks_per_sec()
 {
     return sys_counter_state.ticks_per_sec;
 }
+
+void system_counter_set_ticks_per_sec(counter_t ticks_per_sec)
+{
+    sys_counter_state.ticks_per_sec = ticks_per_sec;
+}
