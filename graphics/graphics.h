@@ -294,7 +294,7 @@ extern void graphics_circle(graphics_t* graphics,
  * @param x_to Конечная абсцисса.
  * @param y_to Конечная ордината.
  */
-extern void graphics_square(graphics_t* graphics,
+extern void graphics_rectangle(graphics_t* graphics,
                             graphics_pos_t x_from, graphics_pos_t y_from,
                             graphics_pos_t x_to, graphics_pos_t y_to);
 
